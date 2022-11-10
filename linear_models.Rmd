@@ -152,8 +152,58 @@ nyc_airbnb %>%
 the presence of extremely large outliers in price and a generally skewed residual distribution. There are a few things we might try to do here – including creating a formal rule for the exclusion of outliers, transforming the price variable (e.g. using a log transformation), or fitting a model that is robust to outliers. 
 
 
+## Hypothesis testing
+
+```{r}
+fit_null = lm(price ~ stars + borough, data = nyc_airbnb)
+fit_alt = lm(price ~ stars + borough + room_type, data = nyc_airbnb)
+
+```
+
+
+that this works for nested models only. Comparing non-nested models is a common problem that requires other methods; we’ll see one approach in cross validation.
+```{r}
+anova(fit_null, fit_alt) %>% 
+  broom::tidy()
+
+```
 
 
 
 
+```{r}
 
+
+```
+
+
+```{r}
+
+
+```
+
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
