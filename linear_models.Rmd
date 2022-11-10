@@ -60,67 +60,100 @@ fit
 ```
 
 
-```{r}
+## Tidying output
 
+The output of a lm is an object of class lm – a very specific list that isn’t a dataframe but that can be manipulated using other functions. 
+```{r}
+fit
+
+```
+
+
+summary produces an object of class summary.lm, which is also a list – that’s how we extracted the coefficients using summary(fit)$coef
+```{r}
+summary(fit)
+summary(fit)$coef
+
+```
+
+
+coef produces a vector of coefficient values, and fitted.values is a vector of fitted values.
+```{r}
+coef(fit)
+fitted.values(fit)
+
+```
+
+
+The broom package has functions for obtaining a quick summary of the model and for cleaning up the coefficient table.
+```{r}
+fit %>% 
+  broom::glance()
+```
+
+
+broom::tidy works with lots of things, including most of the functions for model fitting you’re likely to run into (survival, mixed models, additive models, …).
+```{r}
+fit %>% 
+  broom::tidy()
 
 ```
 
 
 ```{r}
+fit %>% 
+  broom::tidy() %>% 
+  select(term, estimate, p.value) %>% 
+  mutate(term = str_replace(term, "^borough", "Borough: ")) %>% 
+  knitr::kable(digits = 3)
 
+
+```
+
+
+
+## Diagnostics
+
+The modelr package can be used to add residuals and fitted values to a dataframe.
+```{r}
+modelr::add_residuals(nyc_airbnb, fit)
 
 ```
 
 
 ```{r}
-
-
-```
-
-
-```{r}
-
+modelr::add_predictions(nyc_airbnb, fit)
 
 ```
 
 
 ```{r}
-
-
-```
-
-
-```{r}
-
+nyc_airbnb %>% 
+  modelr::add_residuals(fit) %>% 
+  ggplot(aes(x = borough, y = resid)) + geom_violin()
 
 ```
 
 
 ```{r}
-
-
-```
-
-
-```{r}
-
+nyc_airbnb %>% 
+  modelr::add_residuals(fit) %>% 
+  ggplot(aes(x = borough, y = resid)) + geom_violin()
 
 ```
 
 
 ```{r}
-
-
+nyc_airbnb %>% 
+  modelr::add_residuals(fit) %>% 
+  ggplot(aes(x = stars, y = resid)) + geom_point()
 ```
 
-
-```{r}
-
-
-```
+the presence of extremely large outliers in price and a generally skewed residual distribution. There are a few things we might try to do here – including creating a formal rule for the exclusion of outliers, transforming the price variable (e.g. using a log transformation), or fitting a model that is robust to outliers. 
 
 
-```{r}
 
 
-```
+
+
+
