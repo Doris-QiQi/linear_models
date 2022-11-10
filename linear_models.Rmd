@@ -11,7 +11,6 @@ library(p8105.datasets)
 
 set.seed(1)
 
-
 ```
 
 ## Model Fitting
@@ -32,18 +31,30 @@ nyc_airbnb =
     neighborhood = neighbourhood) %>% 
   filter(borough != "Staten Island") %>% 
   select(price, stars, borough, neighborhood, room_type)
+
+nyc_airbnb
 ```
 
-  
-R will treat categorical (factor) covariates appropriately and predictably: indicator variables are created for each non-reference category and included in your model, and the factor level is treated as the reference.
 
+### 1. regression with categorical predictors(covariates)
+  
+R will treat **categorical (factor) covariates** appropriately and predictably: 
+
+**indicator variables** are created for each **non-reference** category and included in your model, and the factor level is treated as the reference.
+
+##### borough is a categorical predictor
+
+##### the **intercept** term is the **reference group** -- Bronx in this example
 ```{r}
 fit = lm(price ~ stars + borough, data = nyc_airbnb)
 fit
 ```
 
+### 2. reorder factors: change the categorical covariate order/ change reference group
 
-changing reference categories won’t change “fit” or statistical sigificance, but can affect ease of interpretation.
+changing reference categories won’t change “fit” or statistical significance
+
+but can affect ease of interpretation.
 
 ```{r}
 nyc_airbnb = 
@@ -62,22 +73,35 @@ fit
 
 ## Tidying output
 
-The output of a lm is an object of class lm – a very specific list that isn’t a dataframe but that can be manipulated using other functions. 
+### 1. Type of `fit`
+
+The output of a `lm` is an object of **class lm** which is a **list**
+
+It is not a df but that can be manipulated using other functions. 
 ```{r}
 fit
 
+typeof(fit)
+
 ```
 
+### 2. The type of `summary(fit)`
 
-summary produces an object of class summary.lm, which is also a list – that’s how we extracted the coefficients using summary(fit)$coef
+summary produces an object of **class summary.lm**, which is also a list
 ```{r}
 summary(fit)
+typeof(summary(fit))
+
 summary(fit)$coef
 
 ```
 
 
-coef produces a vector of coefficient values, and fitted.values is a vector of fitted values.
+### 3. `coef()` and `fitted.values()`function's output is a **vector**
+
+`coef` produces a vector of coefficient values
+
+`fitted.values` is a vector of fitted values.
 ```{r}
 coef(fit)
 fitted.values(fit)
@@ -85,12 +109,17 @@ fitted.values(fit)
 ```
 
 
+### 4. `broom` package can tidy up the `fit` result
+
 The broom package has functions for obtaining a quick summary of the model and for cleaning up the coefficient table.
+
+#### `broom::glance` produce a tibble of statistics
 ```{r}
 fit %>% 
   broom::glance()
 ```
 
+#### `broom::tidy` produce a tibble for each term in the regression
 
 broom::tidy works with lots of things, including most of the functions for model fitting you’re likely to run into (survival, mixed models, additive models, …).
 ```{r}
