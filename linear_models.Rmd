@@ -52,9 +52,9 @@ fit
 
 ### 2. reorder factors: change the categorical covariate order/ change reference group
 
-changing reference categories won’t change “fit” or statistical significance
+#### the refence group is Manhattan now.
 
-but can affect ease of interpretation.
+changing reference categories won’t change “fit” or statistical significance, but can affect ease of interpretation.
 
 ```{r}
 nyc_airbnb = 
@@ -75,9 +75,9 @@ fit
 
 ### 1. Type of `fit`
 
-The output of a `lm` is an object of **class lm** which is a **list**
+#### The output of a `lm` is an object of **class lm** which is a **list**
 
-It is not a df but that can be manipulated using other functions. 
+#### It is not a df but that can be manipulated using other functions. 
 ```{r}
 fit
 
@@ -87,7 +87,7 @@ typeof(fit)
 
 ### 2. The type of `summary(fit)`
 
-summary produces an object of **class summary.lm**, which is also a list
+#### summary produces an object of **class summary.lm**, which is also a list
 ```{r}
 summary(fit)
 typeof(summary(fit))
@@ -113,27 +113,41 @@ fitted.values(fit)
 
 The broom package has functions for obtaining a quick summary of the model and for cleaning up the coefficient table.
 
-#### `broom::glance` produce a tibble of statistics
+### 5. `broom::glance` produce a tibble of statistics
+#### select certain terms(columns) from the tibble (df)
 ```{r}
 fit %>% 
   broom::glance()
+
+fit %>% 
+  broom::glance() %>% 
+  select(AIC)           # select a column    
+
 ```
 
-#### `broom::tidy` produce a tibble for each term in the regression
+### 6. `broom::tidy` produce a tibble for each term in the regression
 
 broom::tidy works with lots of things, including most of the functions for model fitting you’re likely to run into (survival, mixed models, additive models, …).
 ```{r}
 fit %>% 
   broom::tidy()
 
+
 ```
 
+### 7.`str_replace(string, pattern, replacement)`
+
+#### change the charater string format when they have a uniform format
+
+#### pattern is the shared part in the strings
+
+#### replacement is what you want to fill in to replace the previous pattern
 
 ```{r}
 fit %>% 
   broom::tidy() %>% 
   select(term, estimate, p.value) %>% 
-  mutate(term = str_replace(term, "^borough", "Borough: ")) %>% 
+  mutate(term = str_replace(term, "borough", "Borough: ")) %>% 
   knitr::kable(digits = 3)
 
 
@@ -143,31 +157,32 @@ fit %>%
 
 ## Diagnostics
 
-The modelr package can be used to add residuals and fitted values to a dataframe.
+The `modelr` package can be used to **add residuals** and **fitted values** to a df.
+
+### 1. `add_residuals(data,fit)` 
+#### arguments are the original data and the fitted model
+#### add a column named `redis`
 ```{r}
 modelr::add_residuals(nyc_airbnb, fit)
 
 ```
 
 
+### 2. `add_predictions(data,fit)` 
+#### arguments are the original data and the fitted model
+#### add a column named `pred`
 ```{r}
 modelr::add_predictions(nyc_airbnb, fit)
 
 ```
 
-
+### 3. plot : covariate vs. residuals
+#### ggplot()+geom()+ ylim(lowerbound,upperbound) add a y limit
 ```{r}
 nyc_airbnb %>% 
   modelr::add_residuals(fit) %>% 
-  ggplot(aes(x = borough, y = resid)) + geom_violin()
-
-```
-
-
-```{r}
-nyc_airbnb %>% 
-  modelr::add_residuals(fit) %>% 
-  ggplot(aes(x = borough, y = resid)) + geom_violin()
+  ggplot(aes(x = borough, y = resid)) + geom_violin() +
+  ylim(-250,250)
 
 ```
 
@@ -181,11 +196,16 @@ nyc_airbnb %>%
 the presence of extremely large outliers in price and a generally skewed residual distribution. There are a few things we might try to do here – including creating a formal rule for the exclusion of outliers, transforming the price variable (e.g. using a log transformation), or fitting a model that is robust to outliers. 
 
 
+
 ## Hypothesis testing
 
+### 1. compare the nested models
+
+#### null hypothesis : the smaller model is better
+#### alternative hypothesis : the bigger model is better
 ```{r}
-fit_null = lm(price ~ stars + borough, data = nyc_airbnb)
-fit_alt = lm(price ~ stars + borough + room_type, data = nyc_airbnb)
+fit_null = lm(price ~ stars + borough, data = nyc_airbnb)             # smaller model
+fit_alt = lm(price ~ stars + borough + room_type, data = nyc_airbnb)  # bigger model
 
 ```
 
