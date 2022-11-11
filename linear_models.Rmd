@@ -38,13 +38,13 @@ nyc_airbnb
 
 ### 1. regression with categorical predictors(covariates)
   
-R will treat **categorical (factor) covariates** appropriately and predictably: 
+R will treat **categorical covariates** appropriately and predictably: 
 
 **indicator variables** are created for each **non-reference** category and included in your model, and the factor level is treated as the reference.
 
-##### borough is a categorical predictor
+##### `borough` is a categorical predictor
 
-##### the **intercept** term is the **reference group** -- Bronx in this example
+##### the `intercept` term is the **reference group** -- `Bronx` in this example
 ```{r}
 fit = lm(price ~ stars + borough, data = nyc_airbnb)
 fit
@@ -52,7 +52,7 @@ fit
 
 ### 2. reorder factors: change the categorical covariate order/ change reference group
 
-#### the refence group is Manhattan now.
+#### the refence group is `Manhattan` now.
 
 changing reference categories won’t change “fit” or statistical significance, but can affect ease of interpretation.
 
@@ -102,7 +102,7 @@ summary(fit)$coef
 `coef` produces a vector of coefficient values
 
 `fitted.values` is a vector of fitted values.
-```{r}
+```{r,include=FALSE}
 coef(fit)
 fitted.values(fit)
 
@@ -210,7 +210,11 @@ fit_alt = lm(price ~ stars + borough + room_type, data = nyc_airbnb)  # bigger m
 ```
 
 
-that this works for nested models only. Comparing non-nested models is a common problem that requires other methods; we’ll see one approach in cross validation.
+### 2. use `anova(small,big)` to test the models
+
+#### that this works for **nested** models only. 
+#### Comparing **non-nested** models is a common problem that requires other methods;
+#### **cross validation** may be helpful
 ```{r}
 anova(fit_null, fit_alt) %>% 
   broom::tidy()
@@ -218,31 +222,33 @@ anova(fit_null, fit_alt) %>%
 ```
 
 
-## Nesting data
-
-we’ll use nest to create a list column containing datasets and fit separate models to each
 ```{r}
-nyc_airbnb %>% 
-  lm(price ~ stars * borough + room_type * borough, data = .) %>% 
-  broom::tidy() %>% 
-  knitr::kable(digits = 3)
-
 ```
 
 
-Alternatively, we can nest within boroughs and fit borough-specific models associating price with rating and room type:
+## Nesting data
+
+we can nest within boroughs and fit borough-specific models associating price with rating and room type:
+
+### 1. `nest(data = - category column)` get a df for each category
+
+### 2. `unest(results)` release the list columns for each category
+
 ```{r}
 nest_lm_res =
   nyc_airbnb %>% 
-  nest(data = -borough) %>% 
+  nest(df = -borough) %>%   # combine the columns except borough as a list
   mutate(
-    models = map(data, ~lm(price ~ stars + room_type, data = .x)),
+    models = map(.x = df, ~lm(price ~ stars + room_type, data = .x)), 
     results = map(models, broom::tidy)) %>% 
-  select(-data, -models) %>% 
-  unnest(results)
+  select(-df, -models) %>%  # eliminate some tool columns only useful during the process
+  unnest(results)   
+
+nest_lm_res 
 
 ```
 
+### 3. `fct_inorder(term)` reorder the factors by the order in which they first appear
 
 ```{r}
 nest_lm_res %>% 
@@ -268,6 +274,8 @@ manhattan_nest_lm_res =
     results = map(models, broom::tidy)) %>% 
   select(-data, -models) %>% 
   unnest(results)
+
+manhattan_nest_lm_res 
 
 ```
 
