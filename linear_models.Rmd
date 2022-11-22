@@ -13,12 +13,15 @@ set.seed(1)
 
 ```
 
+\ \par
+
+
 ## Model Fitting
 
   * interactions between variables can be specified using `*`.
   * intercept-only model `outcome ~ 1`
   * a model with no intercept `outcome ~ 0 + preidctors`
-  * model using all available predictors `outcome ~ .`
+  * model using all available predictors `outcome ~ .` using the dot `.` to represent variables
   
 ```{r}
 data("nyc_airbnb")
@@ -35,7 +38,7 @@ nyc_airbnb =
 nyc_airbnb
 ```
 
-
+\ \par
 ### 1. regression with categorical predictors(covariates)
   
 R will treat **categorical covariates** appropriately and predictably: 
@@ -50,8 +53,10 @@ fit = lm(price ~ stars + borough, data = nyc_airbnb)
 fit
 ```
 
+\ \par
 ### 2. reorder factors: change the categorical covariate order/ change reference group
 
+#### using `fct_infreq()` reorder the categories by frequency
 #### the refence group is `Manhattan` now.
 
 changing reference categories won’t change “fit” or statistical significance, but can affect ease of interpretation.
@@ -70,6 +75,8 @@ fit
 
 ```
 
+\ \par
+\ \par
 
 ## Tidying output
 
@@ -85,18 +92,17 @@ typeof(fit)
 
 ```
 
+\ \par
 ### 2. The type of `summary(fit)`
 
-#### summary produces an object of **class summary.lm**, which is also a list
+#### summary produces an object of **class summary.lm**, which is also a **list**
 ```{r}
 summary(fit)
 typeof(summary(fit))
 
-summary(fit)$coef
-
 ```
 
-
+\ \par
 ### 3. `coef()` and `fitted.values()`function's output is a **vector**
 
 `coef` produces a vector of coefficient values
@@ -104,15 +110,19 @@ summary(fit)$coef
 `fitted.values` is a vector of fitted values.
 ```{r,include=FALSE}
 coef(fit)
+
 fitted.values(fit)
 
 ```
 
 
+\ \par
 ### 4. `broom` package can tidy up the `fit` result
 
 The broom package has functions for obtaining a quick summary of the model and for cleaning up the coefficient table.
 
+
+\ \par
 ### 5. `broom::glance` produce a tibble of statistics
 #### select certain terms(columns) from the tibble (df)
 ```{r}
@@ -125,6 +135,8 @@ fit %>%
 
 ```
 
+
+\ \par
 ### 6. `broom::tidy` produce a tibble for each term in the regression
 
 broom::tidy works with lots of things, including most of the functions for model fitting you’re likely to run into (survival, mixed models, additive models, …).
@@ -132,9 +144,10 @@ broom::tidy works with lots of things, including most of the functions for model
 fit %>% 
   broom::tidy()
 
-
 ```
 
+
+\ \par
 ### 7.`str_replace(string, pattern, replacement)`
 
 #### change the charater string format when they have a uniform format
@@ -154,20 +167,22 @@ fit %>%
 ```
 
 
-
+\ \par
+\ \par
 ## Diagnostics
 
 The `modelr` package can be used to **add residuals** and **fitted values** to a df.
 
 ### 1. `add_residuals(data,fit)` 
 #### arguments are the original data and the fitted model
-#### add a column named `redis`
+#### add a column named `resid`
 ```{r}
 modelr::add_residuals(nyc_airbnb, fit)
 
 ```
 
 
+\ \par
 ### 2. `add_predictions(data,fit)` 
 #### arguments are the original data and the fitted model
 #### add a column named `pred`
@@ -176,6 +191,8 @@ modelr::add_predictions(nyc_airbnb, fit)
 
 ```
 
+
+\ \par
 ### 3. plot : covariate vs. residuals
 #### ggplot()+geom()+ ylim(lowerbound,upperbound) add a y limit
 ```{r}
@@ -186,17 +203,20 @@ nyc_airbnb %>%
 
 ```
 
-
+\ \par
 ```{r}
 nyc_airbnb %>% 
   modelr::add_residuals(fit) %>% 
   ggplot(aes(x = stars, y = resid)) + geom_point()
 ```
 
+
 the presence of extremely large outliers in price and a generally skewed residual distribution. There are a few things we might try to do here – including creating a formal rule for the exclusion of outliers, transforming the price variable (e.g. using a log transformation), or fitting a model that is robust to outliers. 
 
 
 
+\ \par
+\ \par
 ## Hypothesis testing
 
 ### 1. compare the nested models
@@ -210,6 +230,7 @@ fit_alt = lm(price ~ stars + borough + room_type, data = nyc_airbnb)  # bigger m
 ```
 
 
+\ \par
 ### 2. use `anova(small,big)` to test the models
 
 #### that this works for **nested** models only. 
@@ -222,17 +243,26 @@ anova(fit_null, fit_alt) %>%
 ```
 
 
-```{r}
-```
 
+
+\ \par
+\ \par
 
 ## Nesting data
 
-we can nest within boroughs and fit borough-specific models associating price with rating and room type:
+#### use nest to create a list column containing datasets and fit separate models to each
+#### nest within boroughs and fit borough-specific models 
 
-### 1. `nest(data = - category column)` get a df for each category
+\ \par
+### 1. `nest(data = - category column)` 
 
-### 2. `unest(results)` release the list columns for each category
+#### get a df for each category (df under each category)
+
+#### each category is now a list column that can be the argument for map()
+
+\ \par
+### 2. nest boroughs in NYC
+#### `unest(results)` release the list columns for each category
 
 ```{r}
 nest_lm_res =
@@ -240,7 +270,7 @@ nest_lm_res =
   nest(df = -borough) %>%   # combine the columns except borough as a list
   mutate(
     models = map(.x = df, ~lm(price ~ stars + room_type, data = .x)), 
-    results = map(models, broom::tidy)) %>% 
+    results = map(models, broom::tidy)) %>%  # mao(listcol)
   select(-df, -models) %>%  # eliminate some tool columns only useful during the process
   unnest(results)   
 
@@ -248,19 +278,25 @@ nest_lm_res
 
 ```
 
+
+\ \par
 ### 3. `fct_inorder(term)` reorder the factors by the order in which they first appear
+
+#### pivot_wider to change the model of each borough into one line
 
 ```{r}
 nest_lm_res %>% 
   select(borough, term, estimate) %>% 
   mutate(term = fct_inorder(term)) %>% 
   pivot_wider(
-    names_from = term, values_from = estimate) %>% 
+    names_from = term, values_from = estimate) %>%  # longer changed into wider
   knitr::kable(digits = 3)
 
 ```
 
+\ \par
 
+### 4. nest neighborhoods in Manhattan
 ```{r}
 manhattan_airbnb =
   nyc_airbnb %>% 
