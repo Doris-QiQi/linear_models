@@ -294,9 +294,27 @@ nest_lm_res %>%
 
 ```
 
+### 4. nesting categories = using interactions(categorical variables)
+
+nesting the boroughs = interact borough * room_type + borough * stars
+```{r}
+nyc_airbnb %>% 
+  lm(price ~ stars * borough + room_type * borough, data = .) %>% 
+  broom::tidy() %>% 
+  knitr::kable(digits = 3)
+
+```
+
+
+
 \ \par
 
-### 4. nest neighborhoods in Manhattan
+### 5. **Stratified Analysis** : nest neighborhoods in Manhattan
+
+#### stratified models make it easy to interpret covariate effects in each stratum,
+
+#### does not provide a mechanism for assessing the significance of differences across strata
+
 ```{r}
 manhattan_airbnb =
   nyc_airbnb %>% 
@@ -316,6 +334,13 @@ manhattan_nest_lm_res
 ```
 
 
+\ \par
+\ \par
+## Mixed Models
+
+#### when the factor has too many levels, it is not ideal to interact each level
+
+#### instead, we should try a mixed model : with random intercepts and slopes for each neighborhood
 ```{r}
 manhattan_nest_lm_res %>% 
   filter(str_detect(term, "room_type")) %>% 
