@@ -334,13 +334,6 @@ manhattan_nest_lm_res
 ```
 
 
-\ \par
-\ \par
-## Mixed Models
-
-#### when the factor has too many levels, it is not ideal to interact each level
-
-#### instead, we should try a mixed model : with random intercepts and slopes for each neighborhood
 ```{r}
 manhattan_nest_lm_res %>% 
   filter(str_detect(term, "room_type")) %>% 
@@ -352,6 +345,16 @@ manhattan_nest_lm_res %>%
 ```
 
 
+
+\ \par
+\ \par
+## Mixed Models
+
+#### when the factor has too many levels, it is not ideal to interact each level
+
+#### try a mixed model : with random intercepts and slopes for each neighborhood
+
+
 ```{r}
 manhattan_airbnb %>% 
   lme4::lmer(price ~ stars + room_type + (1 + room_type | neighborhood), data = .) %>% 
@@ -359,9 +362,10 @@ manhattan_airbnb %>%
 
 ```
 
-
+\ \par
 ## Binary outcomes
-
+\ \par
+### 1. create a binary outcome `resolved`
 ```{r}
 baltimore_df = 
   read_csv("data/homicide-data.csv") %>% 
@@ -372,27 +376,49 @@ baltimore_df =
     victim_race = fct_relevel(victim_race, "White")) %>% 
   select(resolved, victim_age, victim_race, victim_sex)
 
+
 ```
 
 
+```{r}
+f <- factor(c("a", "b", "c", "d"), levels = c("b", "c", "d", "a"))
+fct_relevel(f)
+fct_relevel(f, "a")
+fct_relevel(f, "b", "a")
+# Move to the third position
+fct_relevel(f, "a", after = 2)
+
+```
+
+\ \par
+### 2. use `glm(.,family = binomial())` to fit logistic regression
 ```{r}
 fit_logistic = 
   baltimore_df %>% 
   glm(resolved ~ victim_age + victim_race + victim_sex, data = ., family = binomial()) 
 
+summary(fit_logistic)
+
 ```
 
-
+\ \par
+### 3. logistic model estimates are **log odds ratios**
 ```{r}
 fit_logistic %>% 
   broom::tidy() %>% 
-  mutate(OR = exp(estimate)) %>%
+  mutate(OR = exp(estimate)) %>%   # transform the log estimate into estimate
   select(term, log_OR = estimate, OR, p.value) %>% 
   knitr::kable(digits = 3)
 
 ```
 
 
+\ \par
+### 4. `modelr::add_predictions(fitted model)` add prediction to the original df
+
+#### the prediction is the log odds ratio
+
+### 5. inverse logit -- calculate the prob from the log odds ratio (pred)
 ```{r}
 baltimore_df %>% 
   modelr::add_predictions(fit_logistic) %>% 
