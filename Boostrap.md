@@ -212,3 +212,5 @@ boot_straps %>%
     ## `geom_smooth()` using formula 'y ~ x'
 
 ![](Boostrap_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+
+## bootstrap in modelr

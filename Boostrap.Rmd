@@ -151,6 +151,7 @@ boot_straps %>%
 ```
 
 
+## bootstrap in modelr
 ```{r}
 
 
