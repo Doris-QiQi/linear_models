@@ -35,49 +35,80 @@ sim_df_nonconst = sim_df_const %>%
 
 
 ```{r}
+sim_df = 
+  bind_rows(const = sim_df_const, nonconst = sim_df_nonconst, .id = "data_source") 
 
-
-```
-
-
-```{r}
-
-
-```
-
-
-```{r}
-
+sim_df %>% 
+  ggplot(aes(x = x, y = y)) + 
+  geom_point(alpha = .5) +
+  stat_smooth(method = "lm") +
+  facet_grid(~data_source) 
 
 ```
 
 
 ```{r}
-
-
-```
-
-
-```{r}
-
+lm(y ~ x, data = sim_df_const) %>% 
+  broom::tidy() %>% 
+  knitr::kable(digits = 3)
 
 ```
 
 
 ```{r}
+lm(y ~ x, data = sim_df_nonconst) %>% 
+  broom::tidy() %>% 
+  knitr::kable(digits = 3)
 
+```
+
+## Drawing one bootstrap sample
+```{r}
+boot_sample = function(df) {
+  sample_frac(df, replace = TRUE)
+}
+```
+
+
+```{r}
+boot_sample(sim_df_nonconst) %>% 
+  ggplot(aes(x = x, y = y)) + 
+  geom_point(alpha = .5) +
+  stat_smooth(method = "lm")
+
+```
+
+
+## Drawing many bootstrap samples
+```{r}
+boot_straps = 
+  data_frame(
+    strap_number = 1:1000,
+    strap_sample = rerun(1000, boot_sample(sim_df_nonconst))
+  )
+
+boot_straps
 
 ```
 
 
 ```{r}
-
+boot_straps %>% 
+  filter(strap_number %in% 1:2) %>% 
+  mutate(strap_sample = map(strap_sample, ~arrange(.x, x))) %>% 
+  pull(strap_sample)
 
 ```
 
 
 ```{r}
-
+boot_straps %>% 
+  filter(strap_number %in% 1:3) %>% 
+  unnest(strap_sample) %>% 
+  ggplot(aes(x = x, y = y)) + 
+  geom_point(alpha = .5) +
+  stat_smooth(method = "lm", se = FALSE) +
+  facet_grid(~strap_number) 
 
 ```
 
