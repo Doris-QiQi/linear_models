@@ -1,0 +1,223 @@
+---
+title: "cross validation"
+author: "Jingyi Yao"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r, message=FALSE,warning=FALSE}
+library(tidyverse)
+library(modelr)
+library(mgcv)
+
+set.seed(1)
+```
+
+
+## CV “by hand”
+
+### 1. generate a non-linear df
+```{r}
+nonlin_df = 
+  tibble(
+    id = 1:100,
+    x = runif(100, 0, 1),
+    y = 1 - 10 * (x - .3) ^ 2 + rnorm(100, 0, .3)
+  )
+
+nonlin_df %>% 
+  ggplot(aes(x = x, y = y)) + 
+  geom_point()
+
+```
+
+### 2. split data into **training** and **testing**
+
+#### `sample_n(df,n=.)` sample from the df with a sample size as argument
+
+#### `anti_join(df,df1,by="id")` get the complement of a df1 in df, by "column name"
+
+#### use 2 geom_point, the second one should claim the df
+
+```{r}
+train_df = sample_n(nonlin_df, 80)                  # sample from the df
+test_df = anti_join(nonlin_df, train_df, by = "id") # get the complement
+
+ggplot(train_df, aes(x = x, y = y)) + 
+  geom_point() + 
+  geom_point(data = test_df, color = "red")  # 2 geom_point()
+
+```
+
+### 3. fit 3 models using the **training** data
+
+#### `gam(y ~ s(x), data = training)` fit smooth model
+
+#### `gam(y ~ s(x,k), sp, data = training)` sp = smoothing parameter fit wiggly model
+
+```{r}
+linear_mod = lm(y ~ x, data = train_df)
+smooth_mod = mgcv::gam(y ~ s(x), data = train_df)
+wiggly_mod = mgcv::gam(y ~ s(x, k = 30), sp = 10e-6, data = train_df)
+
+```
+
+
+### 4. the smooth model
+
+#### `add_predictions(model name)` to add `pred` to the training df
+```{r}
+train_df %>% 
+  add_predictions(smooth_mod) %>% 
+  ggplot(aes(x = x, y = y)) + geom_point() + 
+  geom_line(aes(y = pred), color = "red")
+
+
+```
+
+
+### 5. the wiggly model
+
+```{r}
+train_df %>% 
+  add_predictions(wiggly_mod) %>% 
+  ggplot(aes(x = x, y = y)) + geom_point() + 
+  geom_line(aes(y = pred), color = "red")
+
+```
+
+
+### 6. show the 3 models together
+
+#### `gather_predictions(fit1,fit2,fit3)` adds column : `model` and `pred`
+```{r}
+train_df %>% 
+  gather_predictions(linear_mod, smooth_mod, wiggly_mod) %>% 
+  mutate(model = fct_inorder(model)) %>% 
+  ggplot(aes(x = x, y = y)) + 
+  geom_point() + 
+  geom_line(aes(y = pred), color = "red") + 
+  facet_wrap(~model)
+
+```
+
+### 7. compute root mean squared errors **RMSE** for each model
+
+#### **median absolute deviation** is a common outcome measure as well, used in `modelr`
+
+
+```{r}
+rmse(linear_mod, test_df)
+
+```
+
+
+```{r}
+rmse(smooth_mod, test_df)
+
+```
+
+
+```{r}
+rmse(wiggly_mod, test_df)
+
+```
+
+
+## CV using modelr
+
+### 1. `crossv_mc` to split the df into train and test for 100 times
+
+#### **train** is a listcol and **test** is another listcol
+```{r}
+cv_df = 
+  crossv_mc(nonlin_df, 100) 
+
+cv_df
+
+```
+
+### 2. create a tibble for `gam()` -- the listcol's item is a tibble
+
+#### `as_tibble(listcol item)` change the list column items into tibbles
+
+#### `map(listcol,as_tibble)` run `as_tibble` on each listcol item
+
+```{r}
+# example with the first list column item
+cv_df %>% pull(train) %>% .[[1]] %>% as_tibble
+
+cv_df %>% pull(test) %>% .[[1]] %>% as_tibble
+
+
+# using map() for each item in the list column
+cv_df =
+  cv_df %>% 
+  mutate(
+    train = map(train, as_tibble), # pull the list column and make it a tibble
+    test = map(test, as_tibble))
+
+cv_df # the items in the listcol are tibbles
+
+```
+
+### fit 3 models and calculate the **RSME** for each
+
+#### use `map(train, ~model function(y~x,data = .x))` to get the model result
+#### use `map2_dbl(model,test,~rsme(model = .x, data = .y))` to get the rsme result
+```{r}
+cv_df = 
+  cv_df %>% 
+  mutate(
+    linear_mod  = map(train, ~lm(y ~ x, data = .x)),
+    smooth_mod  = map(train, ~mgcv::gam(y ~ s(x), data = .x)),
+    wiggly_mod  = map(train, ~gam(y ~ s(x, k = 30), sp = 10e-6, data = .x))) %>% 
+  mutate(
+    rmse_linear = map2_dbl(linear_mod, test, ~rmse(model = .x, data = .y)),
+    rmse_smooth = map2_dbl(smooth_mod, test, ~rmse(model = .x, data = .y)),
+    rmse_wiggly = map2_dbl(wiggly_mod, test, ~rmse(model = .x, data = .y)))
+
+cv_df
+
+```
+
+
+```{r}
+
+
+```
+
+
+```{r}
+
+
+```
+
+
+```{r}
+
+
+```
+
+
+```{r}
+
+
+```
+
+
+```{r}
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
