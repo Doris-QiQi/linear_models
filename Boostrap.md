@@ -457,6 +457,19 @@ nyc_airbnb =
 
 ``` r
 nyc_airbnb %>% 
+  ggplot(aes(x = stars, y = price, color = room_type)) + 
+  geom_point() 
+```
+
+![](Boostrap_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
+
+some **large outliers in price** might affect **estimates** and
+**inference** for the association between star rating and price. Because
+estimates are likely to be sensitive to those outliers and “usual” rules
+for inference may not apply.
+
+``` r
+nyc_airbnb %>% 
   filter(borough == "Manhattan") %>% 
   modelr::bootstrap(n = 1000) %>% 
   mutate(
@@ -468,4 +481,13 @@ nyc_airbnb %>%
   ggplot(aes(x = estimate)) + geom_density()
 ```
 
-![](Boostrap_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
+![](Boostrap_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
+
+This distribution has a heavy tail extending to low values and a bit of
+a “shoulder”, features that may be related to **the frequency with which
+large outliers are included in the bootstrap sample**.
+
+The estimate distribution should be approximately normal according to
+the assumption. But the plot shows that it is indeed skewed. This is
+probably caused by the samples. The outliers may often appear in the
+chosen samples.
