@@ -169,6 +169,14 @@ points **appear more than once**, others **don’t appear at all**.
 
 ## Drawing many bootstrap samples
 
+### 1. create a df to store the 1000 bootstrapped samples
+
+#### `data_frame(column1, column2)` to create a df
+
+#### `rerun(n = times, boot_sample(original df))` bootstrap for n times
+
+#### `rerun(times, function())` rerun the sample function on the same argument for n times, the output is **listcol**
+
 ``` r
 boot_straps = 
   data_frame(
@@ -200,6 +208,8 @@ boot_straps
     ##  9            9 <tibble [250 × 3]>
     ## 10           10 <tibble [250 × 3]>
     ## # … with 990 more rows
+
+### 2. **arrange** the sample and **pull** them out of the listcol
 
 ``` r
 boot_straps %>% 
@@ -240,6 +250,8 @@ boot_straps %>%
     ## 10 -0.606 -0.106  0.0774
     ## # … with 240 more rows
 
+### 3. **unnest** the listcol before plotting
+
 ``` r
 boot_straps %>% 
   filter(strap_number %in% 1:3) %>% 
@@ -254,17 +266,46 @@ boot_straps %>%
 
 ![](Boostrap_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
 
+This shows some of the differences across bootstrap samples, and shows
+that the fitted regression lines aren’t the same for every bootstrap
+sample.
+
 ## Analyzing bootstrap samples
+
+### 1. result is based on model
+
+#### delete sample and model before return the result
+
+#### the output of `map()` is **listcol** – need to unnest() before the output
 
 ``` r
 bootstrap_results = 
   boot_straps %>% 
   mutate(
     models = map(strap_sample, ~lm(y ~ x, data = .x) ),
-    results = map(models, broom::tidy)) %>% 
-  select(-strap_sample, -models) %>% 
+    results = map(models, broom::tidy)) %>%  # use broom::tidy for each listcol model
+  select(-strap_sample, -models) %>%  #  model is just a tool column
   unnest(results) 
 
+bootstrap_results
+```
+
+    ## # A tibble: 2,000 × 6
+    ##    strap_number term        estimate std.error statistic   p.value
+    ##           <int> <chr>          <dbl>     <dbl>     <dbl>     <dbl>
+    ##  1            1 (Intercept)     1.90    0.0982      19.3 2.45e- 51
+    ##  2            1 x               3.14    0.0688      45.6 1.18e-122
+    ##  3            2 (Intercept)     1.89    0.118       16.0 4.78e- 40
+    ##  4            2 x               3.12    0.0843      37.0 5.32e-103
+    ##  5            3 (Intercept)     2.06    0.0976      21.1 3.71e- 57
+    ##  6            3 x               2.97    0.0690      43.1 2.89e-117
+    ##  7            4 (Intercept)     2.04    0.102       20.0 9.03e- 54
+    ##  8            4 x               3.03    0.0699      43.3 1.43e-117
+    ##  9            5 (Intercept)     1.90    0.113       16.8 1.01e- 42
+    ## 10            5 x               3.18    0.0772      41.2 7.18e-113
+    ## # … with 1,990 more rows
+
+``` r
 bootstrap_results %>% 
   group_by(term) %>% 
   summarize(boot_se = sd(estimate)) %>% 
@@ -300,6 +341,6 @@ boot_straps %>%
 
     ## `geom_smooth()` using formula 'y ~ x'
 
-![](Boostrap_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+![](Boostrap_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
 
 ## bootstrap in modelr

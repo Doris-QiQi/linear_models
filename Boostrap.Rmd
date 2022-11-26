@@ -129,6 +129,15 @@ n comparison with the original data, the bootstrap sample has the same character
 
 
 ## Drawing many bootstrap samples
+
+### 1. create a df to store the 1000 bootstrapped samples
+
+#### `data_frame(column1, column2)` to create a df
+
+#### `rerun(n = times, boot_sample(original df))` bootstrap for n times
+
+#### `rerun(times, function())` rerun the sample function on the same argument for n times, the output is **listcol**
+
 ```{r}
 boot_straps = 
   data_frame(
@@ -140,7 +149,7 @@ boot_straps
 
 ```
 
-
+### 2. **arrange** the sample and **pull** them out of the listcol
 ```{r}
 boot_straps %>% 
   filter(strap_number %in% 1:2) %>% 
@@ -149,7 +158,7 @@ boot_straps %>%
 
 ```
 
-
+### 3. **unnest** the listcol before plotting
 ```{r}
 boot_straps %>% 
   filter(strap_number %in% 1:3) %>% 
@@ -162,16 +171,30 @@ boot_straps %>%
 ```
 
 
+This shows some of the differences across bootstrap samples, and shows that the fitted regression lines aren’t the same for every bootstrap sample.
+
+
 ## Analyzing bootstrap samples
+
+### 1. result is based on model
+
+#### delete sample and model before return the result
+
+#### the output of `map()` is **listcol** -- need to unnest() before the output
 ```{r}
 bootstrap_results = 
   boot_straps %>% 
   mutate(
     models = map(strap_sample, ~lm(y ~ x, data = .x) ),
-    results = map(models, broom::tidy)) %>% 
-  select(-strap_sample, -models) %>% 
+    results = map(models, broom::tidy)) %>%  # use broom::tidy for each listcol model
+  select(-strap_sample, -models) %>%  #  model is just a tool column
   unnest(results) 
 
+bootstrap_results
+```
+
+
+```{r}
 bootstrap_results %>% 
   group_by(term) %>% 
   summarize(boot_se = sd(estimate)) %>% 
@@ -205,3 +228,6 @@ boot_straps %>%
 
 
 ```
+
+
+
