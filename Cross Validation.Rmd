@@ -2,7 +2,7 @@
 title: "cross validation"
 author: "Jingyi Yao"
 date: "`r Sys.Date()`"
-output: html_document
+output: github_document
 ---
 
 ```{r, message=FALSE,warning=FALSE}
@@ -161,10 +161,11 @@ cv_df # the items in the listcol are tibbles
 
 ```
 
-### fit 3 models and calculate the **RSME** for each
+### 3. fit 3 models and calculate the **RMSE** for each
 
-#### use `map(train, ~model function(y~x,data = .x))` to get the model result
-#### use `map2_dbl(model,test,~rsme(model = .x, data = .y))` to get the rsme result
+#### use `map(.x = train, ~model function(y~x,data = .x))` to get the model result
+
+#### use `map2_dbl(.x = model,.y = test,~rsme(model = .x, data = .y))` to get the rmse result
 ```{r}
 cv_df = 
   cv_df %>% 
@@ -182,42 +183,30 @@ cv_df
 ```
 
 
+
+### 4. plot and compare the RMSE
+
+#### `select(starts_with("rmse"))` select the rmse columns
+
+#### make the result longer by categorizing the model and store the values in rmse
+```{r}
+cv_df %>% 
+  select(starts_with("rmse")) %>%  # select the column starts_with string
+  pivot_longer(
+    everything(),
+    names_to = "model", 
+    values_to = "rmse",
+    names_prefix = "rmse_") %>% 
+  mutate(model = fct_inorder(model)) %>% 
+  ggplot(aes(x = model, y = rmse)) + geom_violin()
+
+```
+
+### piece-wise linear model
 ```{r}
 
 
 ```
-
-
-```{r}
-
-
-```
-
-
-```{r}
-
-
-```
-
-
-```{r}
-
-
-```
-
-
-```{r}
-
-
-```
-
-
-
-
-
-
-
-
 
 
 
