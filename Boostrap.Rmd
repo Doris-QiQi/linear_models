@@ -5,6 +5,20 @@ date: "`r Sys.Date()`"
 output: github_document
 ---
 
+## Introduction to Bootstrap
+
+Bootstrapping is a popular resampling-based approach to statistical inference, and is helpful when usual statistical methods are intractable or inappropriate. The idea is to **draw repeated samples** from your original sample with **replacement**, thereby **approximating** the repeated sampling framework. Using list columns to store bootstrap samples is natural and provides a “tidy” approach to resampling-based inference.
+
+
+Traditionally, the **distribution of a sample statistic** (sample mean, SLR coefficients, etc.) for repeated, random draws from a population has been established theoretically. These **theoretical distributions** make some **assumptions** about the **underlying population** from which samples are drawn, or depend on **large sample sizes** for asymptotic results. (Central Limit Theorem)
+
+
+In cases where the **assumptions aren’t met**, or **sample sizes aren’t large enough** for asymptotics to kick in, it is still necessary to make inferences using the sample statistic. In these cases, **drawing repeatedly from the original population** would be great – one could simply draw a lot of samples and look at the **empirical** (rather than theoretical) distribution. 
+
+
+Repeated sampling can happen on a computer though. To bootstrap, one draws repeated samples (with the **same sample size**) from the original sample with replacement to mimic the process of drawing repeated samples from the population. The bootstrap samples will differ from the original sample, and the sample statistic of interest (sample mean, SLR coefficients, etc.) can be computed for each bootstrap sample. Looking at the distribution of the statistic across samples gives a sense of the uncertainty in the estimate.
+
+
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(p8105.datasets)
@@ -15,6 +29,11 @@ set.seed(1)
 
 ## Bootstrapping in SLR
 
+### 1. generate 2 samples
+
+#### const sample has the same error for each y -- linear regression assumption
+
+#### nonconst sample has different error for each y
 ```{r}
 n_samp = 250
 
@@ -34,10 +53,19 @@ sim_df_nonconst = sim_df_const %>%
 ```
 
 
+### 2. bind the 2 samples 
+
+#### `bind_rows(.id = "new column", a = df1, b = df2)` a and b are in new column
 ```{r}
 sim_df = 
   bind_rows(const = sim_df_const, nonconst = sim_df_nonconst, .id = "data_source") 
 
+sim_df
+```
+
+
+### 3. plot the fitted line using `+ stat_smooth(method = "lm")`
+```{r}
 sim_df %>% 
   ggplot(aes(x = x, y = y)) + 
   geom_point(alpha = .5) +
@@ -47,6 +75,10 @@ sim_df %>%
 ```
 
 
+These datasets have roughly the same overall variance, but the left panel shows data with constant variance and the **right panel** shows data with **non-constant variance**. For this reason, ordinary least squares should provide reasonable estimates in both cases, but inference is standard inference approaches may only be justified for the data on the left.
+
+
+### 4. compare the SLR model results
 ```{r}
 lm(y ~ x, data = sim_df_const) %>% 
   broom::tidy() %>% 
@@ -61,6 +93,11 @@ lm(y ~ x, data = sim_df_nonconst) %>%
   knitr::kable(digits = 3)
 
 ```
+
+
+standard errors for coefficient estimates are similar in both cases.
+
+
 
 ## Drawing one bootstrap sample
 ```{r}

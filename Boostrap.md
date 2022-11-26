@@ -1,9 +1,48 @@
 Bootstrapping
 ================
 Jingyi Yao
-2022-11-25
+2022-11-26
+
+## Introduction to Bootstrap
+
+Bootstrapping is a popular resampling-based approach to statistical
+inference, and is helpful when usual statistical methods are intractable
+or inappropriate. The idea is to **draw repeated samples** from your
+original sample with **replacement**, thereby **approximating** the
+repeated sampling framework. Using list columns to store bootstrap
+samples is natural and provides a “tidy” approach to resampling-based
+inference.
+
+Traditionally, the **distribution of a sample statistic** (sample mean,
+SLR coefficients, etc.) for repeated, random draws from a population has
+been established theoretically. These **theoretical distributions** make
+some **assumptions** about the **underlying population** from which
+samples are drawn, or depend on **large sample sizes** for asymptotic
+results. (Central Limit Theorem)
+
+In cases where the **assumptions aren’t met**, or **sample sizes aren’t
+large enough** for asymptotics to kick in, it is still necessary to make
+inferences using the sample statistic. In these cases, **drawing
+repeatedly from the original population** would be great – one could
+simply draw a lot of samples and look at the **empirical** (rather than
+theoretical) distribution.
+
+Repeated sampling can happen on a computer though. To bootstrap, one
+draws repeated samples (with the **same sample size**) from the original
+sample with replacement to mimic the process of drawing repeated samples
+from the population. The bootstrap samples will differ from the original
+sample, and the sample statistic of interest (sample mean, SLR
+coefficients, etc.) can be computed for each bootstrap sample. Looking
+at the distribution of the statistic across samples gives a sense of the
+uncertainty in the estimate.
 
 ## Bootstrapping in SLR
+
+### 1. generate 2 samples
+
+#### const sample has the same error for each y – linear regression assumption
+
+#### nonconst sample has different error for each y
 
 ``` r
 n_samp = 250
@@ -22,10 +61,35 @@ sim_df_nonconst = sim_df_const %>%
 )
 ```
 
+### 2. bind the 2 samples
+
+#### `bind_rows(.id = "new column", a = df1, b = df2)` a and b are in new column
+
 ``` r
 sim_df = 
   bind_rows(const = sim_df_const, nonconst = sim_df_nonconst, .id = "data_source") 
 
+sim_df
+```
+
+    ## # A tibble: 500 × 4
+    ##    data_source     x   error     y
+    ##    <chr>       <dbl>   <dbl> <dbl>
+    ##  1 const       0.374  0.136   3.26
+    ##  2 const       1.18   0.407   5.96
+    ##  3 const       0.164 -0.0697  2.42
+    ##  4 const       2.60  -0.248   9.54
+    ##  5 const       1.33   0.696   6.68
+    ##  6 const       0.180  1.15    3.68
+    ##  7 const       1.49  -2.40    4.06
+    ##  8 const       1.74   0.573   7.79
+    ##  9 const       1.58   0.375   7.10
+    ## 10 const       0.695 -0.425   3.66
+    ## # … with 490 more rows
+
+### 3. plot the fitted line using `+ stat_smooth(method = "lm")`
+
+``` r
 sim_df %>% 
   ggplot(aes(x = x, y = y)) + 
   geom_point(alpha = .5) +
@@ -35,7 +99,16 @@ sim_df %>%
 
     ## `geom_smooth()` using formula 'y ~ x'
 
-![](Boostrap_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
+![](Boostrap_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
+
+These datasets have roughly the same overall variance, but the left
+panel shows data with constant variance and the **right panel** shows
+data with **non-constant variance**. For this reason, ordinary least
+squares should provide reasonable estimates in both cases, but inference
+is standard inference approaches may only be justified for the data on
+the left.
+
+### 4. compare the SLR model results
 
 ``` r
 lm(y ~ x, data = sim_df_const) %>% 
@@ -59,6 +132,8 @@ lm(y ~ x, data = sim_df_nonconst) %>%
 | (Intercept) |    1.934 |     0.105 |    18.456 |       0 |
 | x           |    3.112 |     0.075 |    41.661 |       0 |
 
+standard errors for coefficient estimates are similar in both cases.
+
 ## Drawing one bootstrap sample
 
 ``` r
@@ -76,7 +151,7 @@ boot_sample(sim_df_nonconst) %>%
 
     ## `geom_smooth()` using formula 'y ~ x'
 
-![](Boostrap_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
+![](Boostrap_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
 
 ## Drawing many bootstrap samples
 
@@ -163,7 +238,7 @@ boot_straps %>%
 
     ## `geom_smooth()` using formula 'y ~ x'
 
-![](Boostrap_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+![](Boostrap_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
 
 ## Analyzing bootstrap samples
 
@@ -211,6 +286,6 @@ boot_straps %>%
 
     ## `geom_smooth()` using formula 'y ~ x'
 
-![](Boostrap_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+![](Boostrap_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
 
 ## bootstrap in modelr
