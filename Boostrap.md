@@ -136,22 +136,36 @@ standard errors for coefficient estimates are similar in both cases.
 
 ## Drawing one bootstrap sample
 
+### 1. write a function to do bootstrap
+
+#### the original df is the argument
+
+#### the output is the sample from the original df draw with replacement
+
 ``` r
 boot_sample = function(df) {
   sample_frac(df, replace = TRUE)
 }
 ```
 
+### 2. draw the bootstrap result and fit the model using `lm`
+
+#### set the **alpha parameter** to show the overlapping points
+
 ``` r
 boot_sample(sim_df_nonconst) %>% 
   ggplot(aes(x = x, y = y)) + 
-  geom_point(alpha = .5) +
+  geom_point(alpha = .5) +  # set the alpha to show if points are overlapped
   stat_smooth(method = "lm")
 ```
 
     ## `geom_smooth()` using formula 'y ~ x'
 
 ![](Boostrap_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+
+n comparison with the original data, the bootstrap sample has the same
+characteristics but isn’t a perfect duplicate – some original data
+points **appear more than once**, others **don’t appear at all**.
 
 ## Drawing many bootstrap samples
 
