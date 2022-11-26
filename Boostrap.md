@@ -305,6 +305,10 @@ bootstrap_results
     ## 10            5 x               3.18    0.0772      41.2 7.18e-113
     ## # … with 1,990 more rows
 
+### 2. calculate the overall estimate standard deviation
+
+#### overall : all the bootstrap samples
+
 ``` r
 bootstrap_results %>% 
   group_by(term) %>% 
@@ -316,6 +320,8 @@ bootstrap_results %>%
 |:------------|--------:|
 | (Intercept) |   0.075 |
 | x           |   0.101 |
+
+### 2. calculate the overall estimate CI
 
 ``` r
 bootstrap_results %>% 
@@ -331,9 +337,17 @@ bootstrap_results %>%
     ## 1 (Intercept)     1.79     2.08
     ## 2 x               2.91     3.31
 
+### 3. show the fitted lines for each bootstrap sample
+
+#### `ggplot()` arguments are still x and y
+
+#### `geom_line(aes(group = ), stat = "smooth", method = "lm", alpha = .1)`
+
+#### group = unnested list_col, stat_smooth = “lm”
+
 ``` r
 boot_straps %>% 
-  unnest(strap_sample) %>% 
+  unnest(strap_sample) %>%   # first unnest()
   ggplot(aes(x = x, y = y)) + 
   geom_line(aes(group = strap_number), stat = "smooth", method = "lm", se = FALSE, alpha = .1, color = "blue") +
   geom_point(data = sim_df_nonconst, alpha = .5)
@@ -343,4 +357,115 @@ boot_straps %>%
 
 ![](Boostrap_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
 
-## bootstrap in modelr
+## Bootstrap in modelr
+
+### 1. boostrap(n= ) the modelr function’s argument is the number of samples
+
+#### the output is a df with listcol
+
+``` r
+boot_straps = 
+  sim_df_nonconst %>% 
+  modelr::bootstrap(n = 1000)
+
+boot_straps
+```
+
+    ## # A tibble: 1,000 × 2
+    ##    strap                .id  
+    ##    <list>               <chr>
+    ##  1 <resample [250 x 3]> 0001 
+    ##  2 <resample [250 x 3]> 0002 
+    ##  3 <resample [250 x 3]> 0003 
+    ##  4 <resample [250 x 3]> 0004 
+    ##  5 <resample [250 x 3]> 0005 
+    ##  6 <resample [250 x 3]> 0006 
+    ##  7 <resample [250 x 3]> 0007 
+    ##  8 <resample [250 x 3]> 0008 
+    ##  9 <resample [250 x 3]> 0009 
+    ## 10 <resample [250 x 3]> 0010 
+    ## # … with 990 more rows
+
+``` r
+boot_straps$strap[[1]]
+```
+
+    ## <resample [250 x 3]> 8, 132, 69, 225, 180, 122, 34, 170, 216, 122, ...
+
+### 2. transform the listcol item into df
+
+``` r
+as_data_frame(boot_straps$strap[[1]])
+```
+
+    ## Warning: `as_data_frame()` was deprecated in tibble 2.0.0.
+    ## Please use `as_tibble()` instead.
+    ## The signature and semantics have changed, see `?as_tibble`.
+    ## This warning is displayed once every 8 hours.
+    ## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was generated.
+
+    ## # A tibble: 250 × 3
+    ##         x  error     y
+    ##     <dbl>  <dbl> <dbl>
+    ##  1  1.74   0.747  7.96
+    ##  2  0.411  0.343  3.58
+    ##  3  1.15  -1.12   4.34
+    ##  4 -0.157 -0.159  1.37
+    ##  5  2.21  -1.13   7.50
+    ##  6  2.34   0.488  9.52
+    ##  7  0.946 -0.498  4.34
+    ##  8  1.21   1.55   7.17
+    ##  9  2.52   0.528 10.1 
+    ## 10  2.34   0.488  9.52
+    ## # … with 240 more rows
+
+### calculate the sd of estimates
+
+``` r
+sim_df_nonconst %>% 
+  modelr::bootstrap(n = 1000) %>% 
+  mutate(
+    models = map(strap, ~lm(y ~ x, data = .x) ),
+    results = map(models, broom::tidy)) %>% 
+  select(-strap, -models) %>% 
+  unnest(results) %>% 
+  group_by(term) %>% 
+  summarize(boot_se = sd(estimate))
+```
+
+    ## # A tibble: 2 × 2
+    ##   term        boot_se
+    ##   <chr>         <dbl>
+    ## 1 (Intercept)  0.0790
+    ## 2 x            0.104
+
+## Airbnb Example
+
+``` r
+data("nyc_airbnb")
+
+nyc_airbnb = 
+  nyc_airbnb %>% 
+  mutate(stars = review_scores_location / 2) %>% 
+  rename(
+    borough = neighbourhood_group,
+    neighborhood = neighbourhood) %>% 
+  filter(borough != "Staten Island") %>% 
+  drop_na(price, stars) %>% 
+  select(price, stars, borough, neighborhood, room_type)
+```
+
+``` r
+nyc_airbnb %>% 
+  filter(borough == "Manhattan") %>% 
+  modelr::bootstrap(n = 1000) %>% 
+  mutate(
+    models = map(strap, ~ lm(price ~ stars + room_type, data = .x)),
+    results = map(models, broom::tidy)) %>% 
+  select(results) %>% 
+  unnest(results) %>% 
+  filter(term == "stars") %>% 
+  ggplot(aes(x = estimate)) + geom_density()
+```
+
+![](Boostrap_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
